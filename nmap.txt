@@ -1,0 +1,99 @@
+qual comando nmap consegue verificar um range de IPs de 10.0.90.0/24 para ver quais IPs estão disponívels?
+
+Você pode usar o Nmap para verificar quais IPs estão disponíveis em um range `10.0.90.0/24` de algumas maneiras, mas a mais comum e eficiente é usando o "ping scan" (também conhecido como "ping sweep"). Aqui estão algumas opções:
+
+**1. Ping Scan Simples (Opção Recomendada):**
+
+```bash
+nmap -sn 10.0.90.0/24
+```
+
+*   **`-sn`**:  Esta opção desabilita a varredura de portas e realiza apenas a descoberta de hosts. O Nmap envia pacotes ICMP Echo Request (ping) e/ou pacotes ARP (para redes locais) para cada IP no range. Se um host responder, o Nmap o marca como "ativo". É rápido e eficiente para descobrir hosts ativos.
+
+**2.  Ping Scan com Diferentes Técnicas (Se o ping ICMP for bloqueado):**
+
+Se o ping ICMP for bloqueado por firewalls, você pode tentar outras técnicas:
+
+*   **TCP SYN Ping:**
+
+    ```bash
+    nmap -PS 10.0.90.0/24
+    ```
+
+    `-PS`: Envia pacotes TCP SYN para a porta 80 (você pode especificar outras portas também). Se o host responder com um SYN/ACK, ele está ativo.
+
+*   **TCP ACK Ping:**
+
+    ```bash
+    nmap -PA 10.0.90.0/24
+    ```
+
+    `-PA`: Envia pacotes TCP ACK.  Útil se firewalls bloqueiam SYN, mas permitem ACK.
+
+*   **UDP Ping:**
+
+    ```bash
+    nmap -PU 10.0.90.0/24
+    ```
+    `-PU` Envia pacotes UDP para a porta especificada (o padrão é 40125). Se o host responder com um ICMP "port unreachable", ele está ativo.
+
+*   **ARP Ping (Somente em rede local):**
+    ```bash
+    nmap -PR 10.0.90.0/24
+    ```
+    `-PR`: Usa requisições ARP. Funciona *apenas* se você estiver na mesma rede local (mesmo segmento Ethernet) que os hosts que você está escaneando. É muito rápido e confiável em redes locais.
+
+**3.  Combinando Técnicas:**
+
+Você pode combinar várias técnicas para aumentar a chance de descoberta:
+
+```bash
+nmap -sn -PS22,80,443 -PA80,443 -PU53 10.0.90.0/24
+```
+
+Este comando tenta:
+
+*   Descoberta de host (`-sn`)
+*   TCP SYN ping nas portas 22, 80 e 443
+*   TCP ACK ping nas portas 80 e 443
+*   UDP ping na porta 53
+
+**4.  Usando um arquivo de lista de alvos:**
+
+Se você tiver uma lista de IPs ou ranges em um arquivo (por exemplo, `alvos.txt`), você pode usar a opção `-iL`:
+
+```bash
+nmap -sn -iL alvos.txt
+```
+
+**5.  Saída em Arquivo:**
+
+Para salvar os resultados em um arquivo, você pode usar as opções de saída do Nmap:
+
+```bash
+nmap -sn 10.0.90.0/24 -oN resultados.txt  # Saída normal
+nmap -sn 10.0.90.0/24 -oX resultados.xml # Saída XML (útil para processamento)
+nmap -sn 10.0.90.0/24 -oG resultados.grep # Saída "grepável"
+nmap -sn 10.0.90.0/24 -oA resultados     # Todos os formatos de saída
+```
+
+**Qual comando escolher?**
+
+*   Comece com `nmap -sn 10.0.90.0/24`.  É a forma mais rápida e geralmente funciona bem.
+*   Se você não obtiver os resultados esperados (por exemplo, você sabe que um host está ativo, mas o Nmap não o detecta), experimente as outras técnicas de ping (TCP SYN, TCP ACK, UDP, ARP).
+*   A combinação de técnicas é útil em ambientes com firewalls complexos.
+* Se estiver em uma rede local, o `nmap -PR 10.0.90.0/24` é a opção mais indicada.
+
+**Importante:**
+
+*   **Permissões:**  Em alguns sistemas operacionais (como Linux), você pode precisar executar o Nmap com privilégios de root (usando `sudo`) para realizar certos tipos de scan, especialmente aqueles que envolvem o envio de pacotes brutos (raw packets).
+*   **Legalidade:** Certifique-se de ter permissão para escanear a rede. Escanear redes sem permissão é ilegal e antiético.
+* **Velocidade:** Para acelerar o scan em redes grandes, você pode ajustar o *timing* do Nmap com as opções `-T0` (mais lento, mais furtivo) até `-T5` (mais rápido, mais agressivo/barulhento). O padrão é `-T3` ou `-T4`. Use com cuidado, pois um scan muito agressivo pode sobrecarregar a rede ou disparar alertas de segurança. Geralmente, `-T4` é um bom ponto de partida.
+
+   ```bash
+   nmap -sn -T4 10.0.90.0/24  # Scan mais rápido
+   ```
+
+* **Evitar detecção de IDS/IPS:** Se você precisar ser mais discreto, pode usar opções como `--scan-delay` para adicionar um atraso entre os pacotes, `--spoof-mac` para falsificar o endereço MAC, ou `--data-length` para adicionar dados aleatórios aos pacotes e tentar evitar assinaturas de IDS/IPS.  No entanto, essas técnicas avançadas estão além do escopo desta resposta.
+
+Este guia completo deve ajudá-lo a usar o Nmap para encontrar hosts ativos em um range de IP.
